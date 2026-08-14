@@ -84,9 +84,8 @@
   gather_facts: false
 
   tasks:
-    # - name: Ping the VM
-    #   ansible.builtin.ping:
-    #   host: localhost
+    - name: Ping the VM
+      ansible.builtin.ping:
 
     - name: Check uptime
       ansible.builtin.command:
