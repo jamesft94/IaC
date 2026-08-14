@@ -1,0 +1,119 @@
+---
+- name: Terraform workflow (module + raw commands)
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    tf_dir: "{{ playbook_dir }}"
+    tf_plan_file: "tfplan.out"
+    tf_plan_json: "tfplan.json"
+    vm_user: "azureadmin"
+    vm_password: "P@ssw0rd1234!"
+
+  tasks:
+    - name: Terraform fmt
+      ansible.builtin.command:
+        cmd: terraform fmt -recursive
+        chdir: "{{ tf_dir }}"
+      changed_when: false
+
+    - name: Terraform validate (module has no validate action)
+      ansible.builtin.command:
+        cmd: terraform validate
+        chdir: "{{ tf_dir }}"
+      changed_when: false
+
+    - name: Terraform plan (via module, saved to file)
+      community.general.terraform:
+        project_path: "{{ tf_dir }}"
+        state: planned
+        plan_file: "{{ tf_plan_file }}"
+        force_init: true
+      register: tf_plan
+      diff: true
+
+    - name: Show plan summary
+      ansible.builtin.debug:
+        msg: "Plan changed: {{ tf_plan.changed }}"
+
+    - name: Convert saved plan to JSON
+      ansible.builtin.shell:
+        cmd: "terraform show -json {{ tf_plan_file }} > {{ tf_plan_json }}"
+        chdir: "{{ tf_dir }}"
+      changed_when: false
+
+    - name: Terraform apply (via module, using saved plan)
+      community.general.terraform:
+        project_path: "{{ tf_dir }}"
+        state: present
+        plan_file: "{{ tf_plan_file }}"
+      register: tf_apply
+      diff: true
+
+    - name: Extract Public IP from apply outputs
+      ansible.builtin.set_fact:
+        public_ip: "{{ tf_apply.outputs.public_ip_address.value }}"
+
+    - name: Show Public IP
+      ansible.builtin.debug:
+        msg: "Public IP: {{ public_ip }}"
+
+    - name: Add VM info to memory
+      ansible.builtin.add_host:
+        name: "tf_vm"
+        ansible_host: "{{ public_ip }}"
+        ansible_user: "{{ vm_user }}"
+        # ansible_ssh_private_key_file: "{{ vm_private_key }}"
+        ansible_ssh_password: "{{ vm_password }}"
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+        group: "tf_vm_group"
+
+    - name: Wait for SSH to become available
+      ansible.builtin.wait_for:
+        host: "{{ public_ip }}"
+        port: 22
+        timeout: 300
+        state: started
+
+    - name: Show apply outputs
+      ansible.builtin.debug:
+        var: tf_apply.outputs
+
+- name: Verify VM connectivity
+  hosts: tf_vm_group
+  gather_facts: false
+
+  tasks:
+    # - name: Ping the VM
+    #   ansible.builtin.ping:
+    #   host: localhost
+
+    - name: Check uptime
+      ansible.builtin.command:
+        cmd: uptime
+      register: uptime_result
+      changed_when: false
+
+    - name: Check disk space
+      ansible.builtin.command:
+        cmd: df -h
+      register: disk_result
+      changed_when: false
+
+    - name: Check basic connection to google.com
+      ansible.builtin.uri:
+        url: https://www.google.com
+        status_code: 200
+        timeout: 10
+      register: google_result
+      changed_when: false
+      ignore_errors: true
+
+    - name: Show results
+      ansible.builtin.debug:
+        msg: |
+          Uptime: {{ uptime_result.stdout }}
+          Disk space: {{ disk_result.stdout }}
+          Google connectivity: {{ google_result.status if google_result is defined else 'Failed to connect' }}
+          Host: {{ ansible_host }}
+          User: {{ ansible_user }}

@@ -45,3 +45,6 @@ terraform.rc
 
 # Because i don't know what i am doing and this seems to be local only values :)
 locals.tf
+
+# Ignore vscode folder because again i don't know what i am doing
+.vscode/
