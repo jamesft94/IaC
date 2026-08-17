@@ -48,3 +48,7 @@ locals.tf
 
 # Ignore vscode folder because again i don't know what i am doing
 .vscode/
+
+# I assume .env needs to be ignored because it contains sensitive data
+.env
+.env.local

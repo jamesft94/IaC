@@ -7,8 +7,8 @@
     tf_dir: "{{ playbook_dir }}"
     tf_plan_file: "tfplan.out"
     tf_plan_json: "tfplan.json"
-    vm_user: "azureadmin"
-    vm_password: "P@ssw0rd1234!"
+    vm_user: "{{ lookup('env', 'AZURE_VM_USERNAME') }}"
+    vm_password: "{{ lookup('env', 'AZURE_VM_PASSWORD') }}"
 
   tasks:
     - name: Terraform fmt
@@ -111,8 +111,8 @@
     - name: Show results
       ansible.builtin.debug:
         msg: |
-          Uptime: {{ uptime_result.stdout }}
-          Disk space: {{ disk_result.stdout }}
-          Google connectivity: {{ google_result.status if google_result is defined else 'Failed to connect' }}
-          Host: {{ ansible_host }}
-          User: {{ ansible_user }}
+          Uptime: "{{ uptime_result.stdout }}"
+          Disk space: "{{ disk_result.stdout }}"
+          Google connectivity: "{{ google_result.status if google_result is defined else 'Failed to connect' }}"
+          Host: "{{ ansible_host }}"
+          User: "{{ ansible_user }}"
