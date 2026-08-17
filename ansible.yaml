@@ -59,6 +59,14 @@
       ansible.builtin.debug:
         msg: "Public IP: {{ public_ip }}"
 
+    - name: Load .env file
+      ansible.builtin.set_fact:
+        vm_user: "{{ lookup('env', 'AZURE_VM_USERNAME') }}"
+        vm_password: "{{ lookup('env', 'AZURE_VM_PASSWORD') }}"
+        webhook_api_token: "{{ lookup('env', 'WEBHOOK_API_TOKEN') }}"
+      failed_when: false
+      no_log: true
+
     - name: Add VM info to memory
       ansible.builtin.add_host:
         name: "tf_vm"
