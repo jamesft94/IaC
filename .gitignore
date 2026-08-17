@@ -52,3 +52,7 @@ locals.tf
 # I assume .env needs to be ignored because it contains sensitive data
 .env
 .env.local
+
+# don't wanna deal with these
+
+tfplan.*
