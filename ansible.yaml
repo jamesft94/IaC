@@ -80,6 +80,7 @@
       ansible.builtin.debug:
         var: tf_apply.outputs
 
+
 - name: Verify VM connectivity
   hosts: tf_vm_group
   gather_facts: false
@@ -111,9 +112,13 @@
 
     - name: Show results
       ansible.builtin.debug:
-        msg: |
-          Uptime: "{{ uptime_result.stdout }}"
-          Disk space: "{{ disk_result.stdout }}"
-          Google connectivity: "{{ google_result.status if google_result is defined else 'Failed to connect' }}"
-          Host: "{{ ansible_host }}"
-          User: "{{ ansible_user }}"
+        msg:
+          - "--------------------------------------------------"
+          - "Host:                {{ ansible_host | default(inventory_hostname) }}"
+          - "User:                {{ ansible_user | default('N/A') }}"
+          - "Uptime:              {{ uptime_result.stdout | default('N/A') }}"
+          - "Google Connectivity: {{ google_result.status if google_result is defined and google_result.status is defined else 'Failed to connect' }}"
+          - "Disk Space:"
+          - "{{ disk_result.stdout_lines | default(['N/A']) }}"
+          - "--------------------------------------------------"
+          
