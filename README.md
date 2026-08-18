@@ -4,15 +4,16 @@ A personal learning project for exploring and implementing Infrastructure as Cod
 
 ## Overview
 
-This project uses Infrastructure as Code principles to manage, version control, and automate infrastructure provisioning and management. It's a hands-on learning exercise in modern infrastructure practices and cloud automation patterns.
+This project is an automated infrastructure workflow that uses **Ansible to orchestrate Terraform** for temporary infrastructure provisioning. The workflow provisions a complete Azure infrastructure stack, tests the deployment by making API calls to a private webhook endpoint, and then automatically destroys all resources—regardless of success or failure. It's a hands-on learning exercise in infrastructure automation, IaC practices, and API integration patterns.
 
 ## Features
 
-- **Infrastructure Automation**: Automated provisioning and configuration of cloud resources
-- **Version Control**: All infrastructure changes tracked and versioned
-- **Reproducibility**: Consistent and repeatable infrastructure deployments
-- **Documentation**: Clear documentation of infrastructure architecture
-- **Best Practices**: Follows industry standards and best practices for IaC
+- **Ansible-Driven Orchestration**: Ansible triggers and manages the complete Terraform workflow
+- **Automated Provisioning**: Terraform provisions Azure infrastructure (resource group, virtual network, subnet, security group, VM)
+- **Private API Integration**: Tests the provisioned VM by calling a private webhook API with custom authentication
+- **Guaranteed Cleanup**: Resources are destroyed automatically after testing, whether the workflow succeeds or fails
+- **Temporary Infrastructure**: Ideal for testing, validation, and temporary deployments
+- **Webhook Testing**: Validates infrastructure by executing bash scripts on the private API server and recording results
 
 ## Directory Structure & Files
 
@@ -70,22 +71,20 @@ This project uses Infrastructure as Code principles to manage, version control, 
 
 4. **Review configurations**
    - Check `main.tf`, `variables.tf`, and `locals.tf` for infrastructure settings
-   - Review `ansible.yaml` for VM provisioning steps
+   - Review `ansible.yaml` for orchestration and API integration steps
 
-5. **Deploy infrastructure**
+5. **Run the Ansible playbook**
    ```bash
-   # Initialize Terraform
-   terraform init
-   
-   # Plan infrastructure changes
-   terraform plan -out=tfplan.out
-   
-   # Apply infrastructure changes
-   terraform apply tfplan.out
-   
-   # Run Ansible playbook for VM configuration
+   # This triggers the complete workflow: provision → test → destroy
    ansible-playbook ansible.yaml
    ```
+   The playbook will:
+   - Initialize and validate Terraform
+   - Provision infrastructure on Azure
+   - Extract the public IP of the created VM
+   - Wait for SSH connectivity
+   - Test the VM and call your private API endpoints
+   - Destroy all resources (even if tests fail)
 
 ## Configuration Files
 
@@ -97,9 +96,13 @@ This project uses Infrastructure as Code principles to manage, version control, 
 - **secrets.auto.tfvars** - Sensitive values automatically loaded by Terraform (VM password)
 
 ### Ansible Files
-- **ansible.yaml** - Playbook for configuring the VM after it's provisioned by Terraform
-- **vars.yaml** - Variables for Ansible including:
-  - API credentials (api_key, api_addr) for webhook integration
+- **ansible.yaml** - Complete orchestration playbook that:
+  - Runs Terraform to provision infrastructure
+  - Performs validation checks on the VM (uptime, disk space, connectivity)
+  - Calls private webhook API endpoints to test system status and execute bash scripts
+  - Destroys all infrastructure automatically (in the `always` block) regardless of success or failure
+- **vars.yaml** - Variables for Ansible and Terraform including:
+  - API credentials (api_key, api_addr) for webhook authentication
   - VM credentials (vm_user, vm_password)
   - Terraform metadata (tf_dir, tf_plan_file, tf_plan_json)
 
@@ -130,9 +133,49 @@ Refer to the documentation in each environment or module directory for specific 
 - Use environment variables or secure vaults for managing secrets in CI/CD pipelines
 - Store the actual files securely (1Password, LastPass, encrypted storage, etc.)
 
+## Workflow Execution
+
+When you run `ansible-playbook ansible.yaml`, the following sequence occurs:
+
+1. **Terraform Initialization & Planning**
+   - Formats and validates Terraform configuration
+   - Creates a plan of resources to be provisioned
+   - Converts the plan to JSON for inspection
+
+2. **Infrastructure Provisioning**
+   - Applies the Terraform plan on Azure
+   - Creates: Resource Group, Virtual Network, Subnet, Network Security Group (SSH & HTTP), Public IP, Network Interface, Linux VM
+   - Terraform outputs the VM's public IP address
+
+3. **VM Connectivity & Testing**
+   - Waits for SSH port (22) to become available on the new VM
+   - Performs connectivity tests (ping, uptime check, disk space check)
+   - Tests external connectivity (google.com)
+
+4. **Webhook API Integration**
+   - Makes authenticated requests to your private webhook endpoint
+   - Calls multiple endpoints: `/metrics`, `/8ball`, `/whoami`, `/roast`
+   - Sends VM information including:
+     - Public IP address
+     - VM username and connectivity status
+     - System uptime and disk space
+     - Google connectivity status
+   - The webhook server receives requests, executes bash scripts to process data, and maintains logs
+
+5. **Automatic Cleanup**
+   - Runs `terraform destroy` in the `always` block
+   - Destroys all provisioned resources regardless of workflow success or failure
+   - Ensures no resources are left running
+
 ## Webhook API Integration
 
-This project integrates with a private webhook API (`api_addr`) authenticated via `api_key`. The API processes requests and responds using simple bash scripts. Logs of API interactions are maintained by the webhook service.
+This project integrates with a private webhook API (`api_addr`) authenticated via `api_key`. The webhook server:
+- Receives POST requests from the provisioned VM
+- Executes simple bash scripts to process requests
+- Records data, metrics, and responses in server logs
+- Responds with status information back to the Ansible playbook
+
+The API is called with authentication headers and JSON payloads containing infrastructure metadata for testing and logging purposes.
 
 ## Disclaimer
 
