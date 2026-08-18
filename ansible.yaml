@@ -54,14 +54,6 @@
       ansible.builtin.debug:
         msg: "Public IP: {{ public_ip }}"
 
-    # - name: Load .env file
-    #   ansible.builtin.set_fact:
-    #     vm_user: "{{ lookup('ansible.builtin.env', 'AZURE_VM_USERNAME', default=undef()) }}"
-    #     vm_password: "{{ lookup('ansible.builtin.env', 'AZURE_VM_PASSWORD', default=undef()) }}"
-    #     webhook_api_token: "{{ lookup('ansible.builtin.env', 'WEBHOOK_API_TOKEN', default=undef()) }}"
-    #   failed_when: false
-    #   no_log: true
-
     - name: Add VM info to memory
       ansible.builtin.add_host:
         name: "tf_vm"
@@ -112,6 +104,20 @@
       register: google_result
       changed_when: false
       ignore_errors: true
+
+    - name: Check against private API endpoint
+      ansible.builtin.uri:
+        url: "{{ vars.api_addr }}"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+          X-API-Key: "{{ vars.api_key }}"
+        body: '{"question": "Hello from Ansible!", "expected_ip": "{{ public_ip }}", "target": "{{ vars.api_addr }}"}'
+        status_code: 200
+        timeout: 10
+      register: api_result
+      changed_when: false
+      ignore_errors: false
 
     - name: Show results
       ansible.builtin.debug:
