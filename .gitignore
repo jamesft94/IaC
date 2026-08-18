@@ -16,6 +16,9 @@ crash.*.log
 *.tfvars
 *.tfvars.json
 
+# Ansible variables file with secrets (use vars.yaml.example as template)
+vars.yaml
+
 # Ignore override files as they are usually used to override resources locally and so
 # are not checked in
 override.tf
@@ -57,5 +60,3 @@ locals.tf
 
 tfplan*
 
-# secrets and sensetive data will be stored in this variable file for ansible to use
-vars.yaml
