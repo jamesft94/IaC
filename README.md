@@ -184,5 +184,3 @@ This is a personal learning project. While the infrastructure patterns and pract
 ## License
 
 This project is provided as-is for educational and personal use. Feel free to use, modify, and distribute the code. Attribution is appreciated if you use this in your own projects.
-
-For full details on permissions and limitations, consider adopting a standard open-source license (e.g., MIT, Apache 2.0) if you haven't already.
