@@ -51,3 +51,9 @@ variable "admin_password" {
   type        = string
   sensitive   = true
 }
+
+variable "allowed_ips" {
+  description = "List of allowed IP addresses for SSH access"
+  type        = list(string)
+  default     = []
+}
