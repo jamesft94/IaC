@@ -1,0 +1,11 @@
+# General API & Webhook Secrets
+api_key: 
+
+# Azure VM credentials
+vm_user: 
+vm_password: 
+
+
+tf_dir: "{{ playbook_dir }}"
+tf_plan_file: "tfplan.out"
+tf_plan_json: "tfplan.json"

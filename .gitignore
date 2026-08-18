@@ -55,4 +55,7 @@ locals.tf
 
 # don't wanna deal with these
 
-tfplan.*
+tfplan*
+
+# secrets and sensetive data will be stored in this variable file for ansible to use
+vars.yaml
