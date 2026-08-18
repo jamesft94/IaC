@@ -1,5 +1,5 @@
 ---
-- name: Terraform workflow (module + raw commands)
+- name: Terraform workflow (module + raw commands) with guaranteed cleanup
   hosts: localhost
   gather_facts: false
 
@@ -7,126 +7,155 @@
     - "{{ playbook_dir }}/vars.yaml"
 
   tasks:
-    - name: Terraform fmt
-      ansible.builtin.command:
-        cmd: terraform fmt -recursive
-        chdir: "{{ tf_dir }}"
-      changed_when: false
+    - name: Provision, verify, and always clean up
+      block:
+        - name: Terraform fmt
+          ansible.builtin.command:
+            cmd: terraform fmt -recursive
+            chdir: "{{ tf_dir }}"
+          changed_when: false
 
-    - name: Terraform validate (module has no validate action)
-      ansible.builtin.command:
-        cmd: terraform validate
-        chdir: "{{ tf_dir }}"
-      changed_when: false
+        - name: Terraform validate (module has no validate action)
+          ansible.builtin.command:
+            cmd: terraform validate
+            chdir: "{{ tf_dir }}"
+          changed_when: false
 
-    - name: Terraform plan (via module, saved to file)
-      community.general.terraform:
-        project_path: "{{ tf_dir }}"
-        state: planned
-        plan_file: "{{ tf_plan_file }}"
-        force_init: true
-      register: tf_plan
-      diff: true
+        - name: Terraform plan (via module, saved to file)
+          community.general.terraform:
+            project_path: "{{ tf_dir }}"
+            state: planned
+            plan_file: "{{ tf_plan_file }}"
+            force_init: true
+          register: tf_plan
+          diff: true
 
-    - name: Show plan summary
-      ansible.builtin.debug:
-        msg: "Plan changed: {{ tf_plan.changed }}"
+        - name: Show plan summary
+          ansible.builtin.debug:
+            msg: "Plan changed: {{ tf_plan.changed }}"
 
-    - name: Convert saved plan to JSON
-      ansible.builtin.shell:
-        cmd: "terraform show -json {{ tf_plan_file }} > {{ tf_plan_json }}"
-        chdir: "{{ tf_dir }}"
-      changed_when: false
+        - name: Convert saved plan to JSON
+          ansible.builtin.shell:
+            cmd: "terraform show -json {{ tf_plan_file }} > {{ tf_plan_json }}"
+            chdir: "{{ tf_dir }}"
+          changed_when: false
 
-    - name: Terraform apply (via module, using saved plan)
-      community.general.terraform:
-        project_path: "{{ tf_dir }}"
-        state: present
-        plan_file: "{{ tf_plan_file }}"
-      register: tf_apply
-      diff: true
+        - name: Terraform apply (via module, using saved plan)
+          community.general.terraform:
+            project_path: "{{ tf_dir }}"
+            state: present
+            plan_file: "{{ tf_plan_file }}"
+          register: tf_apply
+          diff: true
 
-    - name: Extract Public IP from apply outputs
-      ansible.builtin.set_fact:
-        public_ip: "{{ tf_apply.outputs.public_ip_address.value }}"
+        - name: Extract Public IP from apply outputs
+          ansible.builtin.set_fact:
+            public_ip: "{{ tf_apply.outputs.public_ip_address.value }}"
 
-    - name: Show Public IP
-      ansible.builtin.debug:
-        msg: "Public IP: {{ public_ip }}"
+        - name: Show Public IP
+          ansible.builtin.debug:
+            msg: "Public IP: {{ public_ip }}"
 
-    - name: Add VM info to memory
-      ansible.builtin.add_host:
-        name: "tf_vm"
-        ansible_host: "{{ public_ip }}"
-        ansible_user: "{{ vm_user }}"
-        # ansible_ssh_private_key_file: "{{ vm_private_key }}"
-        ansible_ssh_password: "{{ vm_password }}"
-        ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
-        group: "tf_vm_group"
+        - name: Add VM info to memory
+          ansible.builtin.add_host:
+            name: "tf_vm"
+            ansible_host: "{{ public_ip }}"
+            ansible_user: "{{ vm_user }}"
+            # ansible_ssh_private_key_file: "{{ vm_private_key }}"
+            ansible_ssh_password: "{{ vm_password }}"
+            ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+            group: "tf_vm_group"
 
-    - name: Wait for SSH to become available
-      ansible.builtin.wait_for:
-        host: "{{ public_ip }}"
-        port: 22
-        timeout: 300
-        state: started
+        - name: Wait for SSH to become available
+          ansible.builtin.wait_for:
+            host: "{{ public_ip }}"
+            port: 22
+            timeout: 300
+            state: started
 
-    - name: Show apply outputs
-      ansible.builtin.debug:
-        var: tf_apply.outputs
+        - name: Ping the VM
+          ansible.builtin.ping:
+          delegate_to: "tf_vm"
 
+        - name: Check uptime
+          ansible.builtin.command:
+            cmd: uptime
+          register: uptime_result
+          changed_when: false
+          delegate_to: "tf_vm"
 
-- name: Verify VM connectivity
-  hosts: tf_vm_group
-  gather_facts: false
+        - name: Check disk space
+          ansible.builtin.command:
+            cmd: df -h
+          register: disk_result
+          changed_when: false
+          delegate_to: "tf_vm"
 
-  tasks:
-    - name: Ping the VM
-      ansible.builtin.ping:
+        - name: Check basic connection to google.com
+          ansible.builtin.uri:
+            url: https://www.google.com
+            status_code: 200
+            timeout: 10
+          register: google_result
+          changed_when: false
+          ignore_errors: true
+          delegate_to: "tf_vm"
 
-    - name: Check uptime
-      ansible.builtin.command:
-        cmd: uptime
-      register: uptime_result
-      changed_when: false
+        - name: Check against private API endpoint
+          ansible.builtin.uri:
+            url: "{{ api_addr }}/metrics"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+              X-API-Key: "{{ api_key }}"
+            body_format: json
+            body:
+              question: "What is the status of the system?"
+              ip address: "{{ public_ip }}"
+              user: "{{ vm_user }}"
+              google connectivity: "{{ google_result.status if google_result is defined and google_result.status is defined else 'Failed to connect' }}"
+              disk space: "{{ disk_result.stdout_lines | default(['N/A']) }}"
+            status_code: 200
+            timeout: 10
+          register: api_result
+          changed_when: false
+          delegate_to: "tf_vm"
 
-    - name: Check disk space
-      ansible.builtin.command:
-        cmd: df -h
-      register: disk_result
-      changed_when: false
+        - name: Show results
+          ansible.builtin.debug:
+            msg:
+              - "--------------------------------------------------"
+              - "Host:                {{ public_ip | default('N/A') }}"
+              - "User:                {{ vm_user | default('N/A') }}"
+              - "Uptime:              {{ uptime_result.stdout | default('N/A') }}"
+              - "Google Connectivity: {{ google_result.status if google_result is defined and google_result.status is defined else 'Failed to connect' }}"
+              - "Disk Space:"
+              - "{{ disk_result.stdout_lines | default(['N/A']) }}"
+              - "--------------------------------------------------"
 
-    - name: Check basic connection to google.com
-      ansible.builtin.uri:
-        url: https://www.google.com
-        status_code: 200
-        timeout: 10
-      register: google_result
-      changed_when: false
-      ignore_errors: true
+      rescue:
+        - name: Report that the run failed
+          ansible.builtin.debug:
+            msg: >-
+              Run failed on task '{{ ansible_failed_task.name | default('unknown') }}':
+              {{ ansible_failed_result.msg | default('see task output above') }}.
+              Proceeding to terraform destroy for cleanup.
 
-    - name: Check against private API endpoint
-      ansible.builtin.uri:
-        url: "{{ vars.api_addr }}"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-          X-API-Key: "{{ vars.api_key }}"
-        body: '{"question": "Hello from Ansible!", "expected_ip": "{{ public_ip }}", "target": "{{ vars.api_addr }}"}'
-        status_code: 200
-        timeout: 10
-      register: api_result
-      changed_when: false
-      ignore_errors: false
+        - name: Re-raise the failure so the playbook still reports failed
+          ansible.builtin.fail:
+            msg: "Playbook failed (see message above). Terraform destroy will still run via 'always'."
 
-    - name: Show results
-      ansible.builtin.debug:
-        msg:
-          - "--------------------------------------------------"
-          - "Host:                {{ ansible_host | default(inventory_hostname) }}"
-          - "User:                {{ ansible_user | default('N/A') }}"
-          - "Uptime:              {{ uptime_result.stdout | default('N/A') }}"
-          - "Google Connectivity: {{ google_result.status if google_result is defined and google_result.status is defined else 'Failed to connect' }}"
-          - "Disk Space:"
-          - "{{ disk_result.stdout_lines | default(['N/A']) }}"
-          - "--------------------------------------------------"
+      always:
+        - name: Terraform destroy (always runs, success or failure)
+          community.general.terraform:
+            project_path: "{{ tf_dir }}"
+            state: absent
+            force_init: true
+          register: tf_destroy
+          ignore_errors: true
+
+        - name: Show destroy result
+          ansible.builtin.debug:
+            msg: >-
+              Terraform destroy finished. Changed: {{ tf_destroy.changed | default('N/A') }}
+              {{ ' | ERROR: ' + (tf_destroy.msg | default('')) if tf_destroy.failed | default(false) else '' }}
