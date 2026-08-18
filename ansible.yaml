@@ -111,10 +111,10 @@
             body_format: json
             body:
               question: "What is the status of the system?"
-              ip address: "{{ public_ip }}"
+              ip_address: "{{ public_ip }}"
               user: "{{ vm_user }}"
-              google connectivity: "{{ google_result.status if google_result is defined and google_result.status is defined else 'Failed to connect' }}"
-              disk space: "{{ disk_result.stdout_lines | default(['N/A']) }}"
+              google_connectivity: "{{ google_result.status if google_result is defined and google_result.status is defined else 'Failed to connect' }}"
+              diskspace: "{{ disk_result.stdout_lines | default(['N/A']) }}"
               expected_ip: "{{ public_ip }}"
               target: "{{ api_addr }}"
             status_code: 200
