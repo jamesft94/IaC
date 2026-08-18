@@ -1,10 +1,10 @@
 # Infrastructure as Code (IaC)
 
-This repository contains Infrastructure as Code definitions for managing cloud infrastructure, networking, and deployment configurations.
+A personal learning project for exploring and implementing Infrastructure as Code (IaC) and infrastructure solutions. This repository is public for visibility and knowledge sharing.
 
 ## Overview
 
-This project uses Infrastructure as Code principles to manage, version control, and automate infrastructure provisioning and management.
+This project uses Infrastructure as Code principles to manage, version control, and automate infrastructure provisioning and management. It's a hands-on learning exercise in modern infrastructure practices and cloud automation patterns.
 
 ## Features
 
@@ -57,16 +57,11 @@ This project uses Infrastructure as Code principles to manage, version control, 
    # Follow environment-specific deployment instructions
    ```
 
-## Usage
+## Usage & Attribution
+
+This project is free to use and adapt for your own infrastructure needs. If you find it useful and use it in your own projects, attribution is appreciated but not required.
 
 Refer to the documentation in each environment or module directory for specific usage instructions.
-
-## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Submit a pull request
-4. Ensure all changes are reviewed before merging to main
 
 ## Security
 
@@ -74,10 +69,12 @@ Refer to the documentation in each environment or module directory for specific 
 - Use environment variables or secure vaults for secrets
 - Review all changes before deployment to production
 
-## Support
+## Disclaimer
 
-For issues or questions, please open an issue in the repository.
+This is a personal learning project. While the infrastructure patterns and practices demonstrated here are solid, use at your own discretion. Always test thoroughly in non-production environments before deploying to production infrastructure.
 
 ## License
 
-[Specify your license here]
+This project is provided as-is for educational and personal use. Feel free to use, modify, and distribute the code. Attribution is appreciated if you use this in your own projects.
+
+For full details on permissions and limitations, consider adopting a standard open-source license (e.g., MIT, Apache 2.0) if you haven't already.
