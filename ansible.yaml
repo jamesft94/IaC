@@ -103,7 +103,7 @@
 
         - name: Check against private API endpoint
           ansible.builtin.uri:
-            url: "{{ api_addr }}/metrics"
+            url: "{{ api_addr }}/{{ item }}"
             method: POST
             headers:
               Content-Type: "application/json"
@@ -118,6 +118,13 @@
             status_code: 200
             timeout: 10
           register: api_result
+          loop:
+            - "metrics"
+            - "8ball"
+            - "whoami"
+            - "roast"
+          loop_control:
+            label: "{{ item }}"
           changed_when: false
           delegate_to: "tf_vm"
 
