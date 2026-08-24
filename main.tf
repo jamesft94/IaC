@@ -84,12 +84,12 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                            = var.vm_name
-  resource_group_name             = azurerm_resource_group.rg.name
-  location                        = azurerm_resource_group.rg.location
-  size                            = var.vm_size
-  admin_username                  = var.admin_username
-  admin_password                  = var.admin_password
+  name                = var.vm_name
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  size                = var.vm_size
+  admin_username      = var.admin_username
+  admin_password      = var.admin_password
 
   disable_password_authentication = true
 
@@ -110,7 +110,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   }
 
   admin_ssh_key {
-    username = var.admin_username
+    username   = var.admin_username
     public_key = file(pathexpand(var.pubkey))
   }
 
