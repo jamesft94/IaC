@@ -66,10 +66,18 @@ resource "aws_security_group" "sg" {
   }
 
   egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "Allow outband HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow DNS"
+    from_port = 53
+    to_port = 53
+    protocol = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -109,12 +117,12 @@ resource "aws_instance" "vm" {
   key_name                    = aws_key_pair.auth.key_name
   associate_public_ip_address = true
 
-metadata_options {
-  http_endpoint = "enabled"
-  http_tokens = "required"
-  http_put_response_hop_limit = 1
-  instance_metadata_tags = "disabled"
-}
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "disabled"
+  }
 
   root_block_device {
     volume_type           = "gp3"
