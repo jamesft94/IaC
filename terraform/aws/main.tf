@@ -13,7 +13,6 @@ provider "aws" {
   region = var.region
 }
 
-# --- Network Infrastructure ---
 
 resource "aws_vpc" "vpc" {
   cidr_block           = var.address_space[0] # e.g. "10.0.0.0/16"
@@ -50,7 +49,6 @@ resource "aws_route_table_association" "rta" {
   route_table_id = aws_route_table.rt.id
 }
 
-# --- Security Group (NSG Equivalent) ---
 
 resource "aws_security_group" "sg" {
   name        = "nsg-main"
@@ -84,8 +82,6 @@ resource "aws_security_group" "sg" {
   tags = local.tags
 }
 
-# --- SSH Key & AMI Resolution ---
-
 resource "aws_key_pair" "auth" {
   key_name   = "${var.vm_name}-key"
   public_key = file(pathexpand(var.pubkey))
@@ -107,7 +103,6 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# --- Compute (EC2 Instance) ---
 
 resource "aws_instance" "vm" {
   ami                         = data.aws_ami.ubuntu.id
