@@ -51,7 +51,6 @@ resource "google_compute_instance" "vm" {
   machine_type = var.vm_size # e.g. "e2-small" or "e2-medium"
   zone         = var.zone
 
-  tags   = ["ssh-allowed"]
   labels = local.tags
 
   boot_disk {
@@ -68,11 +67,5 @@ resource "google_compute_instance" "vm" {
 
     # An empty access_config allocates an ephemeral public IP
     access_config {}
-  }
-
-  # Injects SSH public key directly into instance metadata
-  metadata = {
-    ssh-keys               = "${var.admin_username}:${trimspace(file(pathexpand(var.pubkey)))}"
-    block-project-ssh-keys = "true"
   }
 }
