@@ -52,12 +52,6 @@ variable "admin_password" {
   sensitive   = true
 }
 
-variable "allowed_ips" {
-  description = "List of allowed IP addresses for SSH access"
-  type        = list(string)
-  default     = []
-}
-
 variable "pubkey" {
   description = "path to the ssh public key to be used"
   type        = string
