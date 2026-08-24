@@ -57,3 +57,9 @@ variable "allowed_ips" {
   type        = list(string)
   default     = []
 }
+
+variable "pubkey" {
+  description = "path to the ssh public key to be used"
+  type = string
+  default = "~/.ssh/id_rsa.pub"
+}

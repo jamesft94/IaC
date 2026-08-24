@@ -58,3 +58,5 @@ terraform.rc
 
 tfplan*
 
+# due to development i want to use a test ssh key in this dir
+.ssh
