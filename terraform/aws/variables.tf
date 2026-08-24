@@ -63,3 +63,8 @@ variable "pubkey" {
   type        = string
   default     = "~/.ssh/id_rsa.pub"
 }
+
+variable "tailnet-key" {
+  description = "access key to the tailnet network reusable and ephemeral"
+  type        = string
+}
