@@ -98,7 +98,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   disable_password_authentication = true
   custom_data = base64encode(templatefile("${path.root}/../../common/cloud-init.yaml", {
     tailnet-key = var.tailnet-key
-    hostname           = var.vm_name
+    hostname    = var.vm_name
   }))
 
   network_interface_ids = [
