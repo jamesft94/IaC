@@ -109,6 +109,13 @@ resource "aws_instance" "vm" {
   key_name                    = aws_key_pair.auth.key_name
   associate_public_ip_address = true
 
+metadata_options {
+  http_endpoint = "enabled"
+  http_tokens = "required"
+  http_put_response_hop_limit = 1
+  instance_metadata_tags = "disabled"
+}
+
   root_block_device {
     volume_type           = "gp3"
     volume_size           = 30
