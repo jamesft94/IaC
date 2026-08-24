@@ -43,21 +43,6 @@ resource "google_compute_router_nat" "router-nat" {
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 }
 
-# --- Firewall Rule (NSG Equivalent) ---
-
-# resource "google_compute_firewall" "allow_ssh" {
-#   name    = "allow-ssh"
-#   network = google_compute_network.vpc.name
-
-#   allow {
-#     protocol = "tcp"
-#     ports    = ["22"]
-#   }
-
-#   source_ranges = var.allowed_ips
-#   target_tags   = ["ssh-allowed"]
-# }
-
 # --- Compute Engine (VM Instance) ---
 
 resource "google_compute_instance" "vm" {

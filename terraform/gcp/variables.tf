@@ -42,31 +42,19 @@ variable "vm_name" {
 variable "vm_size" {
   description = "Size of the virtual machine"
   type        = string
-  default     = "n4d-standard-2"
+  default     = "e2-micro"
 }
 
 variable "admin_username" {
   description = "Admin username for the VM"
   type        = string
-  default     = "admin"
-}
-
-variable "admin_password" {
-  description = "Admin password for the VM"
-  type        = string
-  sensitive   = true
-}
-
-variable "pubkey" {
-  description = "path to the ssh public key to be used"
-  type        = string
-  default     = "~/.ssh/id_rsa.pub"
+  default     = "test-user"
 }
 
 variable "image-os" {
   description = "OS image to be installed on the vm"
   type        = string
-  default     = "projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2604-resolute-amd64-v2026072"
+  default     = "ubuntu-os-cloud/ubuntu-2404-lts-amd64"
 }
 
 variable "OS-disk-type" {
