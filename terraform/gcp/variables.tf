@@ -65,12 +65,17 @@ variable "pubkey" {
 
 variable "image-os" {
   description = "OS image to be installed on the vm"
-  type = string
-  default = "projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2604-resolute-amd64-v2026072"
+  type        = string
+  default     = "projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2604-resolute-amd64-v2026072"
 }
 
 variable "OS-disk-type" {
   description = "type of disk used for the OS Image"
-  type = string
-  default = "pd-standard"
+  type        = string
+  default     = "pd-standard"
+}
+
+variable "tailnet-key" {
+  description = "access key to the tailnet network reusable and ephemeral"
+  type        = string
 }
