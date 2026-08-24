@@ -41,17 +41,17 @@ resource "azurerm_network_security_group" "nsg" {
   resource_group_name = azurerm_resource_group.rg.name
   tags                = local.tags
 
-  security_rule {
-    name                       = "AllowSSH"
-    priority                   = 1001
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefixes    = var.allowed_ips
-    destination_address_prefix = "*"
-  }
+  # security_rule {
+  #   name                       = "AllowSSH"
+  #   priority                   = 1001
+  #   direction                  = "Inbound"
+  #   access                     = "Allow"
+  #   protocol                   = "Tcp"
+  #   source_port_range          = "*"
+  #   destination_port_range     = "22"
+  #   source_address_prefixes    = var.allowed_ips
+  #   destination_address_prefix = "*"
+  # }
 
 }
 
@@ -64,6 +64,15 @@ resource "azurerm_public_ip" "pip" {
   tags                = local.tags
 }
 
+resource "azurerm_nat_gateway" "nat" {
+  name                    = "natgw-${var.vm_name}"
+  location                = azurerm_resource_group.rg.location
+  resource_group_name     = var.resource_group_name
+  sku_name                = "standard"
+  idle_timeout_in_minutes = 10
+  tags                    = local.tags
+}
+
 resource "azurerm_network_interface" "nic" {
   name                = "nic-${var.vm_name}"
   location            = azurerm_resource_group.rg.location
@@ -74,8 +83,18 @@ resource "azurerm_network_interface" "nic" {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.pip.id
+    # public_ip_address_id          = azurerm_public_ip.pip.id
   }
+}
+
+resource "azurerm_nat_gateway_public_ip_association" "nat-pip-asc" {
+  nat_gateway_id       = azurerm_nat_gateway.nat.id
+  public_ip_address_id = azurerm_public_ip.pip.id
+}
+
+resource "azurerm_subnet_nat_gateway_association" "subnet-nat-asc" {
+  subnet_id      = azurerm_subnet.subnet.id
+  nat_gateway_id = azurerm_nat_gateway.nat.id
 }
 
 resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
@@ -84,14 +103,17 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                = var.vm_name
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  size                = var.vm_size
-  admin_username      = var.admin_username
-  admin_password      = var.admin_password
-
+  name                            = var.vm_name
+  resource_group_name             = azurerm_resource_group.rg.name
+  location                        = azurerm_resource_group.rg.location
+  size                            = var.vm_size
+  admin_username                  = var.admin_username
+  admin_password                  = var.admin_password
   disable_password_authentication = true
+  custom_data = base64encode(templatefile("${path.root}/../../common/cloud-init.yaml", {
+    tailscale_auth_key = var.tailnet-key
+    hostname           = var.vm_name
+  }))
 
   network_interface_ids = [
     azurerm_network_interface.nic.id,
