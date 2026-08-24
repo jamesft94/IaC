@@ -68,7 +68,7 @@ resource "azurerm_nat_gateway" "nat" {
   name                    = "natgw-${var.vm_name}"
   location                = azurerm_resource_group.rg.location
   resource_group_name     = var.resource_group_name
-  sku_name                = "standard"
+  sku_name                = "Standard"
   idle_timeout_in_minutes = 10
   tags                    = local.tags
 }
