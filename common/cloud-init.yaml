@@ -1,0 +1,9 @@
+#cloud-config
+package_update: true
+packages:
+  - curl
+  - iptables
+
+runcmd:
+  - curl -fsSL https://tailscale.com/install.sh | sh
+  - tailscale up --authkey="${tailscale_auth_key}" --hostname="${hostname}" --ssh=true --tags="tag:server" --accept-routes=false
