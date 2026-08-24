@@ -1,19 +1,18 @@
 variable "region" {
   description = "GCP region for the resources"
   type        = string
-  default     = "eastus"
+  default     = "us-central1"
 }
 
 variable "zone" {
   description = "GCP ZONE"
-  type = string
-  default = "eastus"
+  type        = string
+  default     = "us-central1-c"
 }
 
 variable "gcp_project_id" {
   description = "project id on gcp"
-  type = string
-  default = "project-demo-terraform"  
+  type        = string
 }
 
 variable "vnet_name" {
@@ -37,19 +36,19 @@ variable "subnet_prefix" {
 variable "vm_name" {
   description = "Name of the Linux VM"
   type        = string
-  default     = "vm-demo"
+  default     = "demo-compute"
 }
 
 variable "vm_size" {
   description = "Size of the virtual machine"
   type        = string
-  default     = "Standard_D2als_v7"
+  default     = "n4d-standard-2"
 }
 
 variable "admin_username" {
   description = "Admin username for the VM"
   type        = string
-  default     = "azureadmin"
+  default     = "admin"
 }
 
 variable "admin_password" {
@@ -58,14 +57,20 @@ variable "admin_password" {
   sensitive   = true
 }
 
-variable "allowed_ips" {
-  description = "List of allowed IP addresses for SSH access"
-  type        = list(string)
-  default     = []
-}
-
 variable "pubkey" {
   description = "path to the ssh public key to be used"
   type        = string
   default     = "~/.ssh/id_rsa.pub"
+}
+
+variable "image-os" {
+  description = "OS image to be installed on the vm"
+  type = string
+  default = "projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2604-resolute-amd64-v2026072"
+}
+
+variable "OS-disk-type" {
+  description = "type of disk used for the OS Image"
+  type = string
+  default = "pd-standard"
 }

@@ -31,18 +31,18 @@ resource "google_compute_subnetwork" "subnet" {
 
 # --- Firewall Rule (NSG Equivalent) ---
 
-resource "google_compute_firewall" "allow_ssh" {
-  name    = "allow-ssh"
-  network = google_compute_network.vpc.name
+# resource "google_compute_firewall" "allow_ssh" {
+#   name    = "allow-ssh"
+#   network = google_compute_network.vpc.name
 
-  allow {
-    protocol = "tcp"
-    ports    = ["22"]
-  }
+#   allow {
+#     protocol = "tcp"
+#     ports    = ["22"]
+#   }
 
-  source_ranges = var.allowed_ips
-  target_tags   = ["ssh-allowed"]
-}
+#   source_ranges = var.allowed_ips
+#   target_tags   = ["ssh-allowed"]
+# }
 
 # --- Compute Engine (VM Instance) ---
 
@@ -56,9 +56,9 @@ resource "google_compute_instance" "vm" {
 
   boot_disk {
     initialize_params {
-      image = "ubuntu-os-cloud/ubuntu-2204-lts"
+      image = var.image-os
       size  = 30
-      type  = "pd-standard"
+      type  = var.OS-disk-type
     }
   }
 
