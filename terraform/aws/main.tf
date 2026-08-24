@@ -75,9 +75,9 @@ resource "aws_security_group" "sg" {
 
   egress {
     description = "Allow DNS"
-    from_port = 53
-    to_port = 53
-    protocol = "udp"
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
