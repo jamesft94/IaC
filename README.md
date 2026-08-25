@@ -78,11 +78,16 @@ This project is an automated infrastructure workflow that uses **Ansible to orch
    # This triggers the complete workflow: provision → test → destroy
    ansible-playbook ansible/ansible.yaml -e cloud_provider=azure
    ```
+   Or use the interactive launcher, which checks provider-specific secrets and
+   variables before starting the playbook:
+   ```bash
+   ./scripts/start.sh
+   ```
    The playbook will:
    - Initialize and validate Terraform
    - Provision infrastructure in the selected cloud provider directory
-   - Extract the public IP of the created VM
-   - Wait for SSH connectivity
+   - Extract the Tailscale hostname of the created VM
+   - Connect to the VM over Tailscale
    - Test the VM and call your private API endpoints
    - Destroy all resources (even if tests fail)
 
@@ -145,7 +150,7 @@ When you run `ansible-playbook ansible/ansible.yaml -e cloud_provider=<aws|azure
 2. **Infrastructure Provisioning**
    - Applies the Terraform plan on Azure
    - Creates the resources defined in `terraform/<cloud_provider>`
-   - Terraform outputs the VM's public IP address
+   - Terraform outputs the VM's Tailscale hostname
 
 3. **VM Connectivity & Testing**
    - Waits for SSH port (22) to become available on the new VM
@@ -156,7 +161,7 @@ When you run `ansible-playbook ansible/ansible.yaml -e cloud_provider=<aws|azure
    - Makes authenticated requests to your private webhook endpoint
    - Calls multiple endpoints: `/metrics`, `/8ball`, `/whoami`, `/roast`
    - Sends VM information including:
-     - Public IP address
+   - Tailscale hostname
      - VM username and connectivity status
      - System uptime and disk space
      - Google connectivity status

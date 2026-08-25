@@ -64,30 +64,23 @@
           register: tf_apply
           diff: true
 
-        - name: Extract Public IP from apply outputs
+        - name: Extract Tailscale hostname from apply outputs
           ansible.builtin.set_fact:
-            public_ip: "{{ tf_apply.outputs.public_ip_address.value }}"
+            tailscale_hostname: "{{ tf_apply.outputs.tailscale_hostname.value }}"
 
-        - name: Show Public IP
+        - name: Show Tailscale hostname
           ansible.builtin.debug:
-            msg: "Public IP: {{ public_ip }}"
+            msg: "Tailscale hostname: {{ tailscale_hostname }}"
 
         - name: Add VM info to memory
           ansible.builtin.add_host:
             name: "tf_vm"
-            ansible_host: "{{ public_ip }}"
+            ansible_host: "{{ tailscale_hostname }}"
             ansible_user: "{{ vm_user }}"
             # ansible_ssh_private_key_file: "{{ vm_private_key }}"
             ansible_ssh_password: "{{ vm_password }}"
             ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
             group: "tf_vm_group"
-
-        - name: Wait for SSH to become available
-          ansible.builtin.wait_for:
-            host: "{{ public_ip }}"
-            port: 22
-            timeout: 300
-            state: started
 
         - name: Ping the VM
           ansible.builtin.ping:
@@ -127,11 +120,11 @@
             body_format: json
             body:
               question: "What is the status of the system?"
-              ip_address: "{{ public_ip }}"
+              tailscale_hostname: "{{ tailscale_hostname }}"
               user: "{{ vm_user }}"
               google_connectivity: "{{ google_result.status if google_result is defined and google_result.status is defined else 'Failed to connect' }}"
               diskspace: "{{ disk_result.stdout_lines | default(['N/A']) }}"
-              expected_ip: "{{ public_ip }}"
+              expected_hostname: "{{ tailscale_hostname }}"
               target: "{{ api_addr }}"
             status_code: 200
             timeout: 10
@@ -150,7 +143,7 @@
           ansible.builtin.debug:
             msg:
               - "--------------------------------------------------"
-              - "Host:                {{ public_ip | default('N/A') }}"
+              - "Tailscale host:      {{ tailscale_hostname | default('N/A') }}"
               - "User:                {{ vm_user | default('N/A') }}"
               - "Uptime:              {{ uptime_result.stdout | default('N/A') }}"
               - "Google Connectivity: {{ google_result.status if google_result is defined and google_result.status is defined else 'Failed to connect' }}"

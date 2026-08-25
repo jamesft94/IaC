@@ -9,3 +9,8 @@ output "ssh_command" {
 output "Compute_engine_name" {
   value = google_compute_instance.vm.name
 }
+
+output "tailscale_hostname" {
+  description = "Tailscale hostname assigned to the VM"
+  value       = var.vm_name
+}

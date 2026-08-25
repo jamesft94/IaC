@@ -10,6 +10,11 @@ output "private_ip_address" {
   value = azurerm_network_interface.nic.private_ip_address
 }
 
+output "tailscale_hostname" {
+  description = "Tailscale hostname assigned to the VM"
+  value       = var.vm_name
+}
+
 output "ssh_command" {
   value = "ssh ${var.admin_username}@${var.vm_name}"
 }
