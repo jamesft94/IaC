@@ -13,27 +13,52 @@ provider "aws" {
   region = var.region
 }
 
-
+# ----------------------------------------------------------------------
+# 1. VPC & Subnets
+# ----------------------------------------------------------------------
 resource "aws_vpc" "vpc" {
-  cidr_block           = var.address_space[0] # e.g. "10.0.0.0/16"
+  cidr_block           = var.address_space # e.g., "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags                 = merge(local.tags, { Name = var.vnet_name })
+
+  tags = merge(local.tags, {
+    Name = var.vnet_name
+  })
 }
 
+# Public subnet required to host the NAT Gateway
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.vpc.id
+  cidr_block              = cidrsubnet(var.address_space, 8, 100) # e.g., "10.0.100.0/24"
+  map_public_ip_on_launch = true
+
+  tags = merge(local.tags, {
+    Name = "subnet-public-nat"
+  })
+}
+
+# Private subnet equivalent to Azure subnet
+resource "aws_subnet" "subnet" {
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = var.subnet_prefix # e.g., "10.0.1.0/24"
+  availability_zone = aws_subnet.public.availability_zone
+
+  tags = merge(local.tags, {
+    Name = "subnet-main"
+  })
+}
+
+# Internet Gateway for VPC public outbound traffic
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.vpc.id
-  tags   = merge(local.tags, { Name = "igw-${var.vnet_name}" })
+
+  tags = merge(local.tags, {
+    Name = "igw-${var.vm_name}"
+  })
 }
 
-resource "aws_subnet" "subnet" {
-  vpc_id                  = aws_vpc.vpc.id
-  cidr_block              = var.subnet_prefix[0] # e.g. "10.0.1.0/24"
-  map_public_ip_on_launch = true
-  tags                    = merge(local.tags, { Name = "subnet-main" })
-}
-
-resource "aws_route_table" "rt" {
+# Public Route Table (directs IGW traffic)
+resource "aws_route_table" "public" {
   vpc_id = aws_vpc.vpc.id
 
   route {
@@ -41,53 +66,89 @@ resource "aws_route_table" "rt" {
     gateway_id = aws_internet_gateway.igw.id
   }
 
-  tags = merge(local.tags, { Name = "rt-main" })
+  tags = merge(local.tags, {
+    Name = "rt-public"
+  })
 }
 
-resource "aws_route_table_association" "rta" {
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+# ----------------------------------------------------------------------
+# 2. NAT Gateway & Elastic IP (Outbound connectivity for private subnet)
+# ----------------------------------------------------------------------
+resource "aws_eip" "nat" {
+  domain = "vpc"
+
+  tags = merge(local.tags, {
+    Name = "pip-${var.vm_name}"
+  })
+}
+
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public.id
+
+  tags = merge(local.tags, {
+    Name = "natgw-${var.vm_name}"
+  })
+
+  depends_on = [aws_internet_gateway.igw]
+}
+
+# Private Route Table (routes outbound traffic through NAT Gateway)
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.vpc.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat.id
+  }
+
+  tags = merge(local.tags, {
+    Name = "rt-private"
+  })
+}
+
+resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.subnet.id
-  route_table_id = aws_route_table.rt.id
+  route_table_id = aws_route_table.private.id
 }
 
-
+# ----------------------------------------------------------------------
+# 3. Security Group & Key Pair
+# ----------------------------------------------------------------------
 resource "aws_security_group" "sg" {
   name        = "nsg-main"
-  description = "Security group for VM"
+  description = "Main network security group"
   vpc_id      = aws_vpc.vpc.id
 
-  ingress {
-    description = "Allow SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_ips
+  # Allow all outbound traffic (matches Azure NSG default behavior)
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
-  egress {
-    description = "Allow outband HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  tags = merge(local.tags, {
+    Name = "nsg-main"
+  })
+}
 
-  egress {
-    description = "Allow DNS"
-    from_port   = 53
-    to_port     = 53
-    protocol    = "udp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+resource "aws_key_pair" "key" {
+  key_name   = "key-${var.vm_name}"
+  public_key = file(pathexpand(var.pubkey))
 
   tags = local.tags
 }
 
-resource "aws_key_pair" "auth" {
-  key_name   = "${var.vm_name}-key"
-  public_key = file(pathexpand(var.pubkey))
-  tags       = local.tags
-}
-
+# ----------------------------------------------------------------------
+# 4. AMI & EC2 Instance
+# ----------------------------------------------------------------------
 data "aws_ami" "ubuntu" {
   most_recent = true
   owners      = ["099720109477"] # Canonical
@@ -103,21 +164,20 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-
 resource "aws_instance" "vm" {
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = var.vm_size # e.g. "t3.small" or "t2.micro"
-  subnet_id                   = aws_subnet.subnet.id
-  vpc_security_group_ids      = [aws_security_group.sg.id]
-  key_name                    = aws_key_pair.auth.key_name
-  associate_public_ip_address = true
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = var.vm_size
+  subnet_id     = aws_subnet.subnet.id
+  key_name      = aws_key_pair.key.key_name
 
-  metadata_options {
-    http_endpoint               = "enabled"
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 1
-    instance_metadata_tags      = "disabled"
-  }
+  vpc_security_group_ids = [
+    aws_security_group.sg.id
+  ]
+
+  user_data = templatefile("${path.root}/../../common/cloud-init.yaml", {
+    tailnet-key = var.tailnet-key
+    hostname    = var.vm_name
+  })
 
   root_block_device {
     volume_type           = "gp3"
@@ -125,5 +185,7 @@ resource "aws_instance" "vm" {
     delete_on_termination = true
   }
 
-  tags = merge(local.tags, { Name = var.vm_name })
+  tags = merge(local.tags, {
+    Name = var.vm_name
+  })
 }

@@ -1,7 +1,7 @@
 variable "region" {
   description = "aws region for the resources"
   type        = string
-  default     = "eastus"
+  default     = "eu-north-1"
 }
 
 variable "resource_group_name" {
@@ -18,44 +18,38 @@ variable "vnet_name" {
 
 variable "address_space" {
   description = "CIDR block for the virtual network"
-  type        = list(string)
-  default     = ["10.0.0.0/16"]
+  type        = string
+  default     = "10.0.0.0/16"
 }
 
 variable "subnet_prefix" {
   description = "CIDR block for the subnet"
-  type        = list(string)
-  default     = ["10.0.1.0/24"]
+  type        = string
+  default     = "10.0.1.0/24"
 }
 
 variable "vm_name" {
   description = "Name of the Linux VM"
   type        = string
-  default     = "vm-demo"
+  default     = "test-compute"
 }
 
 variable "vm_size" {
   description = "Size of the virtual machine"
   type        = string
-  default     = "Standard_D2als_v7"
+  default     = "t3.small"
 }
 
 variable "admin_username" {
   description = "Admin username for the VM"
   type        = string
-  default     = "azureadmin"
+  default     = "mehrdad"
 }
 
 variable "admin_password" {
   description = "Admin password for the VM"
   type        = string
   sensitive   = true
-}
-
-variable "allowed_ips" {
-  description = "List of allowed IP addresses for SSH access"
-  type        = list(string)
-  default     = []
 }
 
 variable "pubkey" {
