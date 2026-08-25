@@ -4,14 +4,14 @@ A personal learning project for exploring and implementing Infrastructure as Cod
 
 ## Overview
 
-This project is an automated infrastructure workflow that uses **Ansible to orchestrate Terraform** for temporary infrastructure provisioning. The workflow provisions a complete Azure infrastructure stack, tests the deployment by making API calls to a private webhook endpoint, and then automatically destroys all resources—regardless of success or failure. It's a hands-on learning exercise in infrastructure automation, IaC practices, and API integration patterns.
+This project is an automated infrastructure workflow that uses **Ansible to orchestrate Terraform** for temporary infrastructure provisioning. The workflow provisions a complete AWS, Azure, or GCP infrastructure stack, tests the deployment by making API calls to a private webhook endpoint, and lets the user decide whether to destroy the stack afterward. It's a hands-on learning exercise in infrastructure automation, IaC practices, and API integration patterns.
 
 ## Features
 
 - **Ansible-Driven Orchestration**: Ansible triggers and manages the complete Terraform workflow
 - **Automated Provisioning**: Terraform provisions AWS, Azure, or GCP infrastructure in the selected provider directory
 - **Private API Integration**: Tests the provisioned VM by calling a private webhook API with custom authentication
-- **Guaranteed Cleanup**: Resources are destroyed automatically after testing, whether the workflow succeeds or fails
+- **Optional Cleanup**: The launcher asks whether to destroy resources after testing
 - **Temporary Infrastructure**: Ideal for testing, validation, and temporary deployments
 - **Webhook Testing**: Validates infrastructure by executing bash scripts on the private API server and recording results
 
@@ -105,7 +105,7 @@ This project is an automated infrastructure workflow that uses **Ansible to orch
   - Runs Terraform to provision infrastructure
   - Performs validation checks on the VM (uptime, disk space, connectivity)
   - Calls private webhook API endpoints to test system status and execute bash scripts
-  - Destroys all infrastructure automatically (in the `always` block) regardless of success or failure
+   - Passes cleanup control to the interactive launcher after the workflow completes
 - **vars.yaml** - Variables for Ansible and Terraform including:
   - API credentials (api_key, api_addr) for webhook authentication
   - VM credentials (vm_user, vm_password)
@@ -168,8 +168,8 @@ When you run `ansible-playbook ansible/ansible.yaml -e cloud_provider=<aws|azure
    - The webhook server receives requests, executes bash scripts to process data, and maintains logs
 
 5. **Automatic Cleanup**
-   - Runs `terraform destroy` in the `always` block
-   - Destroys all provisioned resources regardless of workflow success or failure
+   - Asks whether to run `terraform destroy` after the workflow completes
+   - Leaves resources running when cleanup is declined
    - Ensures no resources are left running
 
 ## Webhook API Integration

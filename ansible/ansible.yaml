@@ -1,5 +1,5 @@
 ---
-- name: Terraform workflow (module + raw commands) with guaranteed cleanup
+- name: Terraform workflow (module + raw commands)
   hosts: localhost
   gather_facts: false
 
@@ -23,7 +23,7 @@
         tf_plan_json: "{{ playbook_dir }}/../terraform/{{ cloud_provider | lower }}/tfplan.json"
 
   tasks:
-    - name: Provision, verify, and always clean up
+    - name: Provision and verify infrastructure
       block:
         - name: Terraform fmt
           ansible.builtin.command:
@@ -157,23 +157,8 @@
             msg: >-
               Run failed on task '{{ ansible_failed_task.name | default('unknown') }}':
               {{ ansible_failed_result.msg | default('see task output above') }}.
-              Proceeding to terraform destroy for cleanup.
+              Terraform cleanup is controlled by the launcher script.
 
         - name: Re-raise the failure so the playbook still reports failed
           ansible.builtin.fail:
-            msg: "Playbook failed (see message above). Terraform destroy will still run via 'always'."
-
-      always:
-        - name: Terraform destroy (always runs, success or failure)
-          community.general.terraform:
-            project_path: "{{ tf_dir }}"
-            state: absent
-            force_init: true
-          register: tf_destroy
-          ignore_errors: true
-
-        - name: Show destroy result
-          ansible.builtin.debug:
-            msg: >-
-              Terraform destroy finished. Changed: {{ tf_destroy.changed | default('N/A') }}
-              {{ ' | ERROR: ' + (tf_destroy.msg | default('')) if tf_destroy.failed | default(false) else '' }}
+            msg: "Playbook failed (see message above). Run the launcher cleanup prompt if the stack should be destroyed."

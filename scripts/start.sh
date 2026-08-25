@@ -199,6 +199,23 @@ check_tailscale() {
     fi
 }
 
+destroy_stack() {
+    local tf_dir="$ROOT_DIR/terraform/$CLOUD_PROVIDER"
+    local destroy_status
+
+    printf '\nInitializing Terraform before cleanup...\n'
+    terraform -chdir="$tf_dir" init -input=false
+    printf 'Destroying the %s stack...\n' "$PROVIDER_NAME"
+    if terraform -chdir="$tf_dir" destroy -auto-approve; then
+        printf 'Terraform destroy completed.\n'
+        return 0
+    else
+        destroy_status=$?
+        printf 'Warning: Terraform destroy failed with status %s.\n' "$destroy_status" >&2
+        return "$destroy_status"
+    fi
+}
+
 choose_provider
 check_tailscale
 ensure_shared_values
@@ -207,4 +224,24 @@ configure_defaults_or_guided
 
 printf '\nStarting Terraform and Ansible for %s...\n' "$PROVIDER_NAME"
 cd "$ROOT_DIR"
-exec ansible-playbook ansible/ansible.yaml -e "cloud_provider=$CLOUD_PROVIDER"
+ansible_status=0
+if ansible-playbook ansible/ansible.yaml -e "cloud_provider=$CLOUD_PROVIDER"; then
+    ansible_status=0
+else
+    ansible_status=$?
+fi
+
+printf '\nThe Ansible workflow has completed with status %s.\n' "$ansible_status"
+read -r -p 'Destroy the entire Terraform stack now? [y/N] ' destroy_choice
+if [[ "$destroy_choice" =~ ^[Yy]$ ]]; then
+    if destroy_stack; then
+        :
+    else
+        destroy_status=$?
+        [[ "$ansible_status" -ne 0 ]] || ansible_status=$destroy_status
+    fi
+else
+    printf 'The Terraform stack was left running.\n'
+fi
+
+exit "$ansible_status"
