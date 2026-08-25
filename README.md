@@ -87,9 +87,10 @@ This project is an automated infrastructure workflow that uses **Ansible to orch
    - Initialize and validate Terraform
    - Provision infrastructure in the selected cloud provider directory
    - Extract the Tailscale hostname of the created VM
+   - Wait up to 10 minutes for the VM to become reachable over Tailscale
    - Connect to the VM over Tailscale
    - Test the VM and call your private API endpoints
-   - Destroy all resources (even if tests fail)
+   - Ask whether to destroy all resources after the workflow completes
 
 ## Configuration Files
 

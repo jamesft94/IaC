@@ -82,6 +82,13 @@
             ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
             group: "tf_vm_group"
 
+        - name: Wait for the VM to become reachable over Tailscale
+          ansible.builtin.wait_for_connection:
+            timeout: 600
+            connect_timeout: 10
+            sleep: 10
+          delegate_to: "tf_vm"
+
         - name: Ping the VM
           ansible.builtin.ping:
           delegate_to: "tf_vm"
