@@ -54,7 +54,7 @@ variable "image-os" {
 variable "OS-disk-type" {
   description = "type of disk used for the OS Image"
   type        = string
-  default     = "pd-standard"
+  default     = "pd-balanced"
 }
 
 variable "tailnet-key" {
