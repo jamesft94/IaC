@@ -23,10 +23,11 @@ resource "google_compute_network" "vpc" {
 }
 
 resource "google_compute_subnetwork" "subnet" {
-  name          = "subnet-main"
-  ip_cidr_range = var.subnet_prefix[0]
-  region        = var.region
-  network       = google_compute_network.vpc.id
+  name                     = "subnet-main"
+  ip_cidr_range            = var.subnet_prefix[0]
+  region                   = var.region
+  network                  = google_compute_network.vpc.id
+  private_ip_google_access = true
 }
 
 resource "google_compute_router" "router" {
