@@ -39,9 +39,10 @@ resource "aws_subnet" "public" {
 
 # Private subnet equivalent to Azure subnet
 resource "aws_subnet" "subnet" {
-  vpc_id            = aws_vpc.vpc.id
-  cidr_block        = var.subnet_prefix # e.g., "10.0.1.0/24"
-  availability_zone = aws_subnet.public.availability_zone
+  vpc_id                  = aws_vpc.vpc.id
+  cidr_block              = var.subnet_prefix # e.g., "10.0.1.0/24"
+  availability_zone       = aws_subnet.public.availability_zone
+  map_public_ip_on_launch = false
 
   tags = merge(local.tags, {
     Name = "subnet-main"
