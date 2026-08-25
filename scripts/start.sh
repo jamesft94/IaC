@@ -31,7 +31,9 @@ read_tfvar_value() {
     [[ -f "$file" ]] || return 0
     awk -v key="$key" '$0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
         sub("^[[:space:]]*" key "[[:space:]]*=[[:space:]]*", "")
-        gsub(/^[\" ]+|[\" ]+$/, "")
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+        sub(/^["]/, "")
+        sub(/["]$/, "")
         print
         exit
     }' "$file"
@@ -188,14 +190,19 @@ configure_defaults_or_guided() {
 }
 
 check_tailscale() {
-    if ! command -v tailscale >/dev/null 2>&1; then
+    local -a tailscale_command
+    if command -v tailscale >/dev/null 2>&1; then
+        tailscale_command=(tailscale)
+    elif [[ -x '/mnt/c/Program Files/Tailscale/tailscale.exe' ]]; then
+        tailscale_command=('/mnt/c/Program Files/Tailscale/tailscale.exe')
+    else
         printf 'Warning: tailscale is not installed; this workflow expects Tailscale to be available.\n' >&2
         return
     fi
-    if ! tailscale status >/dev/null 2>&1; then
+    if ! "${tailscale_command[@]}" status >/dev/null 2>&1; then
         printf 'Warning: Tailscale does not appear to be up. The workflow is intended to run with Tailscale available.\n' >&2
     else
-        printf 'Tailscale is up.\n'
+        printf 'Tailscale is up and running.\n'
     fi
 }
 
