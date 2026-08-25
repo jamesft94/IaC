@@ -2,12 +2,11 @@
 api_key:
 api_addr:
 
-# Azure VM credentials
+# Select with -e cloud_provider=<aws|azure|gcp>
+cloud_provider:
+
+# VM credentials for the selected provider
 vm_user: 
 vm_password: 
 
-
-tf_dir: "{{ playbook_dir }}"
-tf_plan_file: "tfplan.out"
-tf_plan_json: "tfplan.json"
 

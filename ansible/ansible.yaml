@@ -6,6 +6,22 @@
   vars_files:
     - "{{ playbook_dir }}/vars/vars.yaml"
 
+  pre_tasks:
+    - name: Require a supported cloud provider
+      ansible.builtin.assert:
+        that:
+          - cloud_provider is defined
+          - cloud_provider | lower in ['aws', 'azure', 'gcp']
+        fail_msg: >-
+          Set cloud_provider to one of: aws, azure, gcp. For example:
+          ansible-playbook ansible/ansible.yaml -e cloud_provider=azure
+
+    - name: Select Terraform configuration for the cloud provider
+      ansible.builtin.set_fact:
+        tf_dir: "{{ playbook_dir }}/../terraform/{{ cloud_provider | lower }}"
+        tf_plan_file: "{{ playbook_dir }}/../terraform/{{ cloud_provider | lower }}/tfplan.out"
+        tf_plan_json: "{{ playbook_dir }}/../terraform/{{ cloud_provider | lower }}/tfplan.json"
+
   tasks:
     - name: Provision, verify, and always clean up
       block:

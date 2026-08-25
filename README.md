@@ -9,7 +9,7 @@ This project is an automated infrastructure workflow that uses **Ansible to orch
 ## Features
 
 - **Ansible-Driven Orchestration**: Ansible triggers and manages the complete Terraform workflow
-- **Automated Provisioning**: Terraform provisions Azure infrastructure (resource group, virtual network, subnet, security group, VM)
+- **Automated Provisioning**: Terraform provisions AWS, Azure, or GCP infrastructure in the selected provider directory
 - **Private API Integration**: Tests the provisioned VM by calling a private webhook API with custom authentication
 - **Guaranteed Cleanup**: Resources are destroyed automatically after testing, whether the workflow succeeds or fails
 - **Temporary Infrastructure**: Ideal for testing, validation, and temporary deployments
@@ -76,11 +76,11 @@ This project is an automated infrastructure workflow that uses **Ansible to orch
 5. **Run the Ansible playbook**
    ```bash
    # This triggers the complete workflow: provision → test → destroy
-   ansible-playbook ansible.yaml
+   ansible-playbook ansible/ansible.yaml -e cloud_provider=azure
    ```
    The playbook will:
    - Initialize and validate Terraform
-   - Provision infrastructure on Azure
+   - Provision infrastructure in the selected cloud provider directory
    - Extract the public IP of the created VM
    - Wait for SSH connectivity
    - Test the VM and call your private API endpoints
@@ -135,7 +135,7 @@ Refer to the documentation in each environment or module directory for specific 
 
 ## Workflow Execution
 
-When you run `ansible-playbook ansible.yaml`, the following sequence occurs:
+When you run `ansible-playbook ansible/ansible.yaml -e cloud_provider=<aws|azure|gcp>`, the following sequence occurs:
 
 1. **Terraform Initialization & Planning**
    - Formats and validates Terraform configuration
@@ -144,7 +144,7 @@ When you run `ansible-playbook ansible.yaml`, the following sequence occurs:
 
 2. **Infrastructure Provisioning**
    - Applies the Terraform plan on Azure
-   - Creates: Resource Group, Virtual Network, Subnet, Network Security Group (SSH & HTTP), Public IP, Network Interface, Linux VM
+   - Creates the resources defined in `terraform/<cloud_provider>`
    - Terraform outputs the VM's public IP address
 
 3. **VM Connectivity & Testing**
