@@ -1,13 +1,13 @@
 variable "region" {
   description = "GCP region for the resources"
   type        = string
-  default     = "us-central1"
+  default     = "us-east4"
 }
 
 variable "zone" {
   description = "GCP ZONE"
   type        = string
-  default     = "us-central1-c"
+  default     = "us-east4-c"
 }
 
 variable "gcp_project_id" {
@@ -36,13 +36,13 @@ variable "vm_name" {
 variable "vm_size" {
   description = "Size of the virtual machine"
   type        = string
-  default     = "n4-standard-2"
+  default     = "e2-standard-2"
 }
 
 variable "admin_username" {
   description = "Admin username for the VM"
   type        = string
-  default     = "test-user"
+  default     = "root"
 }
 
 variable "image-os" {
@@ -54,7 +54,7 @@ variable "image-os" {
 variable "OS-disk-type" {
   description = "type of disk used for the OS Image"
   type        = string
-  default     = "hyperdisk-balanced"
+  default     = "pd-balanced"
 }
 
 variable "tailnet-key" {
