@@ -36,7 +36,7 @@ variable "vm_name" {
 variable "vm_size" {
   description = "Size of the virtual machine"
   type        = string
-  default     = "e2-micro"
+  default     = "n4-standard-2"
 }
 
 variable "admin_username" {
