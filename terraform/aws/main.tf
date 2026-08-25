@@ -195,6 +195,7 @@ resource "aws_instance" "vm" {
   instance_type = var.vm_size
   subnet_id     = aws_subnet.subnet.id
   key_name      = aws_key_pair.key.key_name
+  ebs_optimized = true
 
   vpc_security_group_ids = [
     aws_security_group.sg.id
