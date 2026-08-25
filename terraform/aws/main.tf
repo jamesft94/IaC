@@ -30,7 +30,7 @@ resource "aws_vpc" "vpc" {
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.vpc.id
   cidr_block              = cidrsubnet(var.address_space, 8, 100) # e.g., "10.0.100.0/24"
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false
 
   tags = merge(local.tags, {
     Name = "subnet-public-nat"
