@@ -56,6 +56,11 @@ resource "google_compute_instance" "vm" {
   name         = var.vm_name
   machine_type = var.vm_size # e.g. "e2-small" or "e2-medium"
   zone         = var.zone
+  shielded_instance_config {
+    enable_secure_boot          = true
+    enable_vtpm                 = true
+    enable_integrity_monitoring = true
+  }
 
   labels = local.tags
 
