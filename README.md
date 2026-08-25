@@ -1,191 +1,143 @@
 # Infrastructure as Code (IaC)
 
-A personal learning project for exploring and implementing Infrastructure as Code (IaC) and infrastructure solutions. This repository is public for visibility and knowledge sharing.
+This project provisions temporary Linux VM environments on Amazon Web Services (AWS), Microsoft Azure, or Google Cloud Platform (GCP). Terraform creates the cloud infrastructure, cloud-init installs and registers Tailscale, and Ansible verifies the VM and calls a private webhook API. The interactive launcher selects the provider, prepares configuration, runs Ansible, and optionally destroys the Terraform stack afterward.
 
-## Overview
+## What It Does
 
-This project is an automated infrastructure workflow that uses **Ansible to orchestrate Terraform** for temporary infrastructure provisioning. The workflow provisions a complete AWS, Azure, or GCP infrastructure stack, tests the deployment by making API calls to a private webhook endpoint, and lets the user decide whether to destroy the stack afterward. It's a hands-on learning exercise in infrastructure automation, IaC practices, and API integration patterns.
+- Provisions one provider-specific infrastructure stack from `terraform/aws`, `terraform/azure`, or `terraform/gcp`.
+- Uses Tailscale as the VM network path instead of relying on a public IP for Ansible access.
+- Uses regular SSH over Tailscale with the configured private key. Tailscale SSH is disabled because SSH authorization is handled by the VM.
+- Waits up to 10 minutes for the VM to become reachable before running checks.
+- Tests VM connectivity, uptime, disk space, and outbound access to Google.
+- Sends test data to the configured private API endpoints.
+- Lets the user decide whether to run Terraform destroy after the workflow.
 
-## Features
+## Repository Layout
 
-- **Ansible-Driven Orchestration**: Ansible triggers and manages the complete Terraform workflow
-- **Automated Provisioning**: Terraform provisions AWS, Azure, or GCP infrastructure in the selected provider directory
-- **Private API Integration**: Tests the provisioned VM by calling a private webhook API with custom authentication
-- **Optional Cleanup**: The launcher asks whether to destroy resources after testing
-- **Temporary Infrastructure**: Ideal for testing, validation, and temporary deployments
-- **Webhook Testing**: Validates infrastructure by executing bash scripts on the private API server and recording results
-
-## Directory Structure & Files
-
-**Current Structure:**
-```
+```text
 .
-├── README.md                    # This file
-├── ansible.yaml                 # Ansible playbook for VM configuration
-├── main.tf                      # Terraform main configuration
-├── variables.tf                 # Terraform variable definitions
-├── output.tf                    # Terraform output definitions
-├── locals.tf                    # Terraform local variables
-├── secrets.auto.tfvars          # Terraform secrets (DO NOT COMMIT)
-├── vars.yaml                    # Ansible variables & API credentials (DO NOT COMMIT)
-├── vars.yaml.example            # Template for vars.yaml
-├── tfplan.json                  # Terraform plan output
-└── terraform.tfstate            # Terraform state (DO NOT COMMIT)
+├── ansible/
+│   ├── ansible.yaml              # Terraform, connectivity, and API workflow
+│   ├── requirements.yml          # Required Ansible collections
+│   └── vars/                     # Ansible API and SSH configuration
+├── common/cloud-init.yaml        # Installs and configures Tailscale on VMs
+├── terraform/
+│   ├── aws/                      # AWS VPC, NAT, security group, and EC2 VM
+│   ├── azure/                    # Azure network, NAT, and Linux VM
+│   └── gcp/                      # GCP network, Cloud NAT, and Compute Engine VM
+├── scripts/start.sh              # Interactive entry point
+└── README.md
 ```
 
-**Note:** The directory structure for environments (dev/staging/production) has not been fully implemented yet. Current configuration is structured at the root level.
+Terraform state, provider lock files, secrets, and generated plan files are kept in their respective provider directories. Do not commit credentials, state files, or `.tfvars` files.
 
 ## Prerequisites
 
-- **Terraform** - Infrastructure provisioning
-- **Ansible** - VM configuration and orchestration
-- **Azure CLI** - For authentication to Azure (if using Azure)
-- **Git** - Version control
-- Azure credentials/subscription (if deploying to Azure)
-- SSH key access to Azure VM
+Install these tools on the machine that runs the workflow:
 
-## Getting Started
+- **Terraform CLI**, version 1.5 or newer.
+- **Ansible Core**, including the `ansible-playbook` command.
+- **Ansible `community.general` collection**:
+  ```bash
+  ansible-galaxy collection install -r ansible/requirements.yml
+  ```
+- **Bash** and standard Unix tools such as `awk`, `sed`, `grep`, and `ssh`.
+- **Tailscale**, logged into the tailnet used by the VMs. The launcher checks Tailscale status. In WSL, it can use the Windows Tailscale CLI at `C:\Program Files\Tailscale\tailscale.exe`.
+- An SSH key pair. AWS and Azure Terraform configurations install the public key on the VM, and Ansible uses the private key over Tailscale. The default private-key path is `.ssh/id_rsa` in this repository. GCP requires equivalent user and key bootstrap configuration for the selected image.
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd IaC
-   ```
+Install and authenticate the CLI for the provider you intend to use:
 
-2. **Set up variables and secrets**
-   - Copy `vars.yaml.example` to `vars.yaml` and fill in the required fields:
-     ```bash
-     cp vars.yaml.example vars.yaml
-     ```
-   - Edit `vars.yaml` with your actual credentials:
-     - `api_key` - Your private API authentication key
-     - `api_addr` - Your webhook API endpoint address
-   - `vm_private_key` - SSH private key used to connect over Tailscale
+- **AWS:** AWS CLI, authenticated with a profile or environment variables that can manage VPC, EC2, Elastic IP, NAT gateway, and related resources. For example, run `aws configure` or set `AWS_PROFILE`.
+- **Azure:** Azure CLI, authenticated with `az login`, with access to create the resource group, network, public IP, NAT gateway, and VM in the selected subscription. Set the subscription with `az account set --subscription <subscription-id>` when needed.
+- **GCP:** Google Cloud CLI, authenticated with `gcloud auth application-default login` or suitable service-account credentials. The account needs a project with billing enabled and permissions for Compute Engine, VPC, Cloud NAT, and related resources. Set the project with `gcloud config set project <project-id>`.
 
-3. **Configure Terraform secrets**
-   - Update or create `secrets.auto.tfvars` with your Azure VM password:
-     ```hcl
-     admin_password = "your-vm-password"
-     ```
+The active cloud account must also have permission to use the selected region or zone and to create the resources defined by that provider module.
 
-4. **Review configurations**
-   - Check `main.tf`, `variables.tf`, and `locals.tf` for infrastructure settings
-   - Review `ansible.yaml` for orchestration and API integration steps
+## Configuration
 
-5. **Run the Ansible playbook**
-   ```bash
-   # This triggers the complete workflow: provision → test → destroy
-   ansible-playbook ansible/ansible.yaml -e cloud_provider=azure
-   ```
-   Or use the interactive launcher, which checks provider-specific secrets and
-   variables before starting the playbook:
-   ```bash
-   ./scripts/start.sh
-   ```
-   The playbook will:
-   - Initialize and validate Terraform
-   - Provision infrastructure in the selected cloud provider directory
-   - Extract the Tailscale hostname of the created VM
-   - Wait up to 10 minutes for the VM to become reachable over Tailscale
-   - Connect to the VM over Tailscale
-   - Test the VM and call your private API endpoints
-   - Ask whether to destroy all resources after the workflow completes
+The launcher checks and prompts for values before starting:
 
-## Configuration Files
+- `ansible/vars/vars.yaml`: `api_key`, `api_addr`, and `vm_private_key`.
+- `terraform/aws/secrets.auto.tfvars`: `tailnet-key` and `pubkey`.
+- `terraform/azure/secrets.auto.tfvars`: `tailnet-key`, `pubkey`, and `admin_password`.
+- `terraform/gcp/secrets.auto.tfvars`: `tailnet-key` and `gcp_project_id`.
 
-### Terraform Files
-- **variables.tf** - Defines all Terraform input variables (location, resource group, network settings, etc.)
-- **main.tf** - Main infrastructure configuration for provisioning Azure resources
-- **output.tf** - Outputs from Terraform (e.g., VM IP address, resource IDs)
-- **locals.tf** - Local values and computed values used in Terraform
-- **secrets.auto.tfvars** - Sensitive values automatically loaded by Terraform (VM password)
+Copy the Ansible example if needed:
 
-### Ansible Files
-- **ansible.yaml** - Complete orchestration playbook that:
-  - Runs Terraform to provision infrastructure
-  - Performs validation checks on the VM (uptime, disk space, connectivity)
-  - Calls private webhook API endpoints to test system status and execute bash scripts
-   - Passes cleanup control to the interactive launcher after the workflow completes
-- **vars.yaml** - Variables for Ansible including:
-  - API credentials (api_key, api_addr) for webhook authentication
-   - SSH private key path (vm_private_key)
-  - Terraform metadata (tf_dir, tf_plan_file, tf_plan_json)
+```bash
+cp ansible/vars/vars.yaml.example ansible/vars/vars.yaml
+```
 
-### Variable Files
-- **vars.yaml.example** - Template file showing required variables structure
-  - Copy to `vars.yaml` and fill in your actual values
-  - Never commit `vars.yaml` to version control (contains secrets)
+The launcher shows the provider's Terraform defaults and offers either to keep them or define Terraform variables one by one. You can also edit the provider's `variables.tf` defaults and `secrets.auto.tfvars` directly before running.
 
-## Usage & Attribution
+Terraform supplies the effective VM SSH username to Ansible after apply:
 
-This project is free to use and adapt for your own infrastructure needs. If you find it useful and use it in your own projects, attribution is appreciated but not required.
+- AWS uses `ubuntu`, the default user in the Canonical Ubuntu image used by the module.
+- Azure uses `admin_username`.
+- GCP uses `admin_username`; ensure the selected GCP image/bootstrap creates that OS user and authorizes the matching key before relying on it.
 
-Refer to the documentation in each environment or module directory for specific usage instructions.
+## Running the Workflow
 
-## Security
+Use the interactive launcher from the repository root:
 
-**CRITICAL: Do NOT commit the following files to version control:**
-- `secrets.auto.tfvars` - Contains Azure VM password
-- `vars.yaml` - Contains API credentials and VM password
-- `terraform.tfstate` and `terraform.tfstate.backup` - Contain infrastructure state with sensitive data
-- `.terraform/` directory - Contains provider configurations and cached modules
+```bash
+./scripts/start.sh
+```
 
-**Best Practices:**
-- Use `.gitignore` to exclude sensitive files
-- Never hardcode credentials in code
-- Ensure `vars.yaml` and `secrets.auto.tfvars` are in your `.gitignore`
-- Review all infrastructure changes before applying to production
-- Use environment variables or secure vaults for managing secrets in CI/CD pipelines
-- Store the actual files securely (1Password, LastPass, encrypted storage, etc.)
+It will:
 
-## Workflow Execution
+1. Ask whether to use AWS, Azure, or GCP.
+2. Check Tailscale and required configuration values.
+3. Show provider defaults and optionally prompt for overrides.
+4. Run `ansible/ansible.yaml` with the selected provider.
+5. Wait for Tailscale DNS and regular SSH connectivity to become available.
+6. Ask whether to destroy the entire selected Terraform stack.
 
-When you run `ansible-playbook ansible/ansible.yaml -e cloud_provider=<aws|azure|gcp>`, the following sequence occurs:
+The playbook can also be run directly when configuration is already prepared:
 
-1. **Terraform Initialization & Planning**
-   - Formats and validates Terraform configuration
-   - Creates a plan of resources to be provisioned
-   - Converts the plan to JSON for inspection
+```bash
+ansible-playbook ansible/ansible.yaml -e cloud_provider=azure
+```
 
-2. **Infrastructure Provisioning**
-   - Applies the Terraform plan on Azure
-   - Creates the resources defined in `terraform/<cloud_provider>`
-   - Terraform outputs the VM's Tailscale hostname
+Direct playbook execution does not prompt for cleanup. Use the launcher when you want the post-run destroy question.
 
-3. **VM Connectivity & Testing**
-   - Waits for SSH port (22) to become available on the new VM
-   - Performs connectivity tests (ping, uptime check, disk space check)
-   - Tests external connectivity (google.com)
+## Cloud Resources
 
-4. **Webhook API Integration**
-   - Makes authenticated requests to your private webhook endpoint
-   - Calls multiple endpoints: `/metrics`, `/8ball`, `/whoami`, `/roast`
-   - Sends VM information including:
-   - Tailscale hostname
-     - VM username and connectivity status
-     - System uptime and disk space
-     - Google connectivity status
-   - The webhook server receives requests, executes bash scripts to process data, and maintains logs
+Each provider module is independent and must be initialized and applied from its own directory. The Ansible playbook selects the directory from `cloud_provider` and runs Terraform formatting, validation, planning, and apply there.
 
-5. **Automatic Cleanup**
-   - Asks whether to run `terraform destroy` after the workflow completes
-   - Leaves resources running when cleanup is declined
-   - Ensures no resources are left running
+The VM receives a Tailscale hostname based on `vm_name`. Cloud-init installs Tailscale and registers the VM with the supplied `tailnet-key`. Because regular SSH is used over Tailscale, the VM must have the corresponding public key and SSH user configured.
 
-## Webhook API Integration
+## Security and Cleanup
 
-This project integrates with a private webhook API (`api_addr`) authenticated via `api_key`. The webhook server:
-- Receives POST requests from the provisioned VM
-- Executes simple bash scripts to process requests
-- Records data, metrics, and responses in server logs
-- Responds with status information back to the Ansible playbook
+Never commit:
 
-The API is called with authentication headers and JSON payloads containing infrastructure metadata for testing and logging purposes.
+- `terraform/*/secrets.auto.tfvars`
+- `ansible/vars/vars.yaml`
+- Terraform state files and backups
+- Terraform plan files
+- Tailscale auth keys, cloud credentials, API keys, or VM passwords
 
-## Disclaimer
+The launcher uses `terraform destroy -auto-approve` only after the user confirms cleanup. If cleanup is declined, the stack remains running and must be destroyed later from the matching provider directory:
 
-This is a personal learning project. While the infrastructure patterns and practices demonstrated here are solid, use at your own discretion. Always test thoroughly in non-production environments before deploying to production infrastructure.
+```bash
+terraform -chdir=terraform/<aws|azure|gcp> destroy
+```
+
+Review the plan before applying changes, and use short-lived credentials and an ephemeral Tailscale auth key where possible.
+
+## Webhook Checks
+
+The playbook sends authenticated POST requests to the configured `api_addr` for:
+
+```text
+/metrics
+/8ball
+/whoami
+/roast
+```
+
+The requests include the Tailscale hostname, VM username, uptime, disk-space output, and external connectivity status.
 
 ## License
 
-This project is provided as-is for educational and personal use. Feel free to use, modify, and distribute the code. Attribution is appreciated if you use this in your own projects.
+This project is provided as-is for educational and personal use.
