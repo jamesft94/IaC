@@ -128,12 +128,36 @@ resource "aws_security_group" "sg" {
 
   # Allow all outbound traffic (matches Azure NSG default behavior)
   egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
-    description      = "allow outband traffic to connect to tailscale"
+    description      = "allow outband HTTPS traffic"
+  }
+
+  egress {
+    from_port   = 41641
+    to_port     = 41641
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Direct Wireguard Traffic"
+  }
+
+  egress {
+    from_port   = 3478
+    to_port     = 3478
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Tailscale STUN NAT"
+  }
+
+  egress {
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "DNS"
   }
 
   tags = merge(local.tags, {
