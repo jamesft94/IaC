@@ -4,12 +4,6 @@ variable "region" {
   default     = "eu-north-1"
 }
 
-variable "resource_group_name" {
-  description = "Name of the resource group"
-  type        = string
-  default     = "rg-demo-terraform"
-}
-
 variable "vnet_name" {
   description = "Name of the virtual network"
   type        = string
@@ -40,17 +34,6 @@ variable "vm_size" {
   default     = "t3.small"
 }
 
-variable "admin_username" {
-  description = "Admin username for the VM"
-  type        = string
-  default     = "mehrdad"
-}
-
-variable "admin_password" {
-  description = "Admin password for the VM"
-  type        = string
-  sensitive   = true
-}
 
 variable "pubkey" {
   description = "path to the ssh public key to be used"

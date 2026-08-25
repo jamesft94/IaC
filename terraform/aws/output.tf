@@ -5,7 +5,7 @@ output "public_ip_address" {
 
 output "ssh_command" {
   description = "handy command to ssh into the instance"
-  value = "ssh ${var.admin_username}@${var.vm_name}"
+  value = "ssh ubuntu@${var.vm_name}"
 }
 
 output "instance_type" {
