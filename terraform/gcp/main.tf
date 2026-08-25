@@ -73,6 +73,7 @@ resource "google_compute_instance" "vm" {
   }
 
   metadata = {
+    block-project-ssh-keys = "true"
     user-data = templatefile("${path.root}/../../common/cloud-init.yaml", {
       tailnet-key = var.tailnet-key
       hostname    = var.vm_name
