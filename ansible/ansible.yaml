@@ -79,7 +79,7 @@
             ansible_user: "{{ vm_user }}"
             ansible_ssh_private_key_file: "{{ vm_private_key | default(playbook_dir + '/../.ssh/id_rsa', true) }}"
             ansible_ssh_password: "{{ vm_password }}"
-            ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+            ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
             group: "tf_vm_group"
 
         - name: Wait for the VM to become reachable over Tailscale
