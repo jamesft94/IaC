@@ -8,5 +8,6 @@ cloud_provider:
 # VM credentials for the selected provider
 vm_user: 
 vm_password: 
+vm_private_key: "{{ playbook_dir }}/../.ssh/id_rsa"
 
 

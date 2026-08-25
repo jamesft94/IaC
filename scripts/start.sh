@@ -71,13 +71,13 @@ write_tfvar_value() {
 prompt_value() {
     local prompt="$1" current="$2" secret="${3:-false}" answer
     if [[ -n "$current" ]]; then
-        printf '%s [%s]: ' "$prompt" "$([[ "$secret" == true ]] && printf 'configured' || printf '%s' "$current")"
+        printf '%s [%s]: ' "$prompt" "$([[ "$secret" == true ]] && printf 'configured' || printf '%s' "$current")" >&2
     else
-        printf '%s: ' "$prompt"
+        printf '%s: ' "$prompt" >&2
     fi
     if [[ "$secret" == true ]]; then
         read -r -s answer
-        printf '\n'
+        printf '\n' >&2
     else
         read -r answer
     fi
@@ -123,21 +123,24 @@ show_defaults() {
 }
 
 ensure_shared_values() {
-    local api_key api_addr vm_user vm_password
+    local api_key api_addr vm_user vm_password vm_private_key
     api_key=$(read_yaml_value api_key || true)
     api_addr=$(read_yaml_value api_addr || true)
     vm_user=$(read_yaml_value vm_user || true)
     vm_password=$(read_yaml_value vm_password || true)
+    vm_private_key=$(read_yaml_value vm_private_key || true)
 
     [[ -n "$api_key" ]] || api_key=$(prompt_value 'Private API key' '' true)
     [[ -n "$api_addr" ]] || api_addr=$(prompt_value 'Private API address' '')
     [[ -n "$vm_user" ]] || vm_user=$(prompt_value 'VM username' '')
     [[ -n "$vm_password" ]] || vm_password=$(prompt_value 'VM password' '' true)
+    [[ -n "$vm_private_key" ]] || vm_private_key=$(prompt_value 'SSH private key path' "$ROOT_DIR/.ssh/id_rsa")
 
     write_yaml_value api_key "$api_key"
     write_yaml_value api_addr "$api_addr"
     write_yaml_value vm_user "$vm_user"
     write_yaml_value vm_password "$vm_password"
+    write_yaml_value vm_private_key "$vm_private_key"
 }
 
 ensure_provider_secrets() {
