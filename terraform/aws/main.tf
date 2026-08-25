@@ -211,6 +211,13 @@ resource "aws_instance" "vm" {
     delete_on_termination = true
   }
 
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required" # Fixes CKV_AWS_79
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
+  }
+
   tags = merge(local.tags, {
     Name = var.vm_name
   })
