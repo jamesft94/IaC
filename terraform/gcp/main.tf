@@ -67,7 +67,7 @@ resource "google_compute_instance" "vm" {
   boot_disk {
     initialize_params {
       image = var.image-os
-      size  = 30
+      size  = 10
       type  = var.OS-disk-type
     }
   }
