@@ -5,9 +5,7 @@ api_addr:
 # Select with -e cloud_provider=<aws|azure|gcp>
 cloud_provider:
 
-# VM credentials for the selected provider
-vm_user: 
-vm_password: 
+# SSH private key used to connect to the selected provider's VM
 vm_private_key: "{{ playbook_dir }}/../.ssh/id_rsa"
 
 

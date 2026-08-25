@@ -68,6 +68,10 @@
           ansible.builtin.set_fact:
             tailscale_hostname: "{{ tf_apply.outputs.tailscale_hostname.value }}"
 
+        - name: Extract VM SSH username from apply outputs
+          ansible.builtin.set_fact:
+            vm_user: "{{ tf_apply.outputs.vm_user.value }}"
+
         - name: Show Tailscale hostname
           ansible.builtin.debug:
             msg: "Tailscale hostname: {{ tailscale_hostname }}"
@@ -78,7 +82,6 @@
             ansible_host: "{{ tailscale_hostname }}"
             ansible_user: "{{ vm_user }}"
             ansible_ssh_private_key_file: "{{ vm_private_key | default(playbook_dir + '/../.ssh/id_rsa', true) }}"
-            ansible_ssh_password: "{{ vm_password }}"
             ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
             group: "tf_vm_group"
 

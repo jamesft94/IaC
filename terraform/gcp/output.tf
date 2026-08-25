@@ -14,3 +14,8 @@ output "tailscale_hostname" {
   description = "Tailscale hostname assigned to the VM"
   value       = var.vm_name
 }
+
+output "vm_user" {
+  description = "SSH username for the VM"
+  value       = var.admin_username
+}

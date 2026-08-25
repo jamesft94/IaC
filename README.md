@@ -60,8 +60,7 @@ This project is an automated infrastructure workflow that uses **Ansible to orch
    - Edit `vars.yaml` with your actual credentials:
      - `api_key` - Your private API authentication key
      - `api_addr` - Your webhook API endpoint address
-     - `vm_user` - Azure VM username
-     - `vm_password` - Azure VM password (must match `secrets.auto.tfvars`)
+   - `vm_private_key` - SSH private key used to connect over Tailscale
 
 3. **Configure Terraform secrets**
    - Update or create `secrets.auto.tfvars` with your Azure VM password:
@@ -107,9 +106,9 @@ This project is an automated infrastructure workflow that uses **Ansible to orch
   - Performs validation checks on the VM (uptime, disk space, connectivity)
   - Calls private webhook API endpoints to test system status and execute bash scripts
    - Passes cleanup control to the interactive launcher after the workflow completes
-- **vars.yaml** - Variables for Ansible and Terraform including:
+- **vars.yaml** - Variables for Ansible including:
   - API credentials (api_key, api_addr) for webhook authentication
-  - VM credentials (vm_user, vm_password)
+   - SSH private key path (vm_private_key)
   - Terraform metadata (tf_dir, tf_plan_file, tf_plan_json)
 
 ### Variable Files
